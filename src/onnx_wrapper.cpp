@@ -251,52 +251,7 @@ int onnx_wrapper_check_model(void* model_ptr) {
 } // extern "C"
 
 // Additional symbol instantiation to match CasADi usage patterns
-// These functions exercise protobuf reflection and default instances
 namespace {
-
-// Force default instance symbols by accessing GetDescriptor/GetReflection
-void force_protobuf_reflection() {
-    // Access default instances through protobuf reflection API
-    // This pulls in symbols like _TypeProto_default_instance_
-
-    const google::protobuf::Descriptor* model_desc = onnx::ModelProto::descriptor();
-    const google::protobuf::Descriptor* graph_desc = onnx::GraphProto::descriptor();
-    const google::protobuf::Descriptor* node_desc = onnx::NodeProto::descriptor();
-    const google::protobuf::Descriptor* tensor_desc = onnx::TensorProto::descriptor();
-    const google::protobuf::Descriptor* type_desc = onnx::TypeProto::descriptor();
-    const google::protobuf::Descriptor* value_info_desc = onnx::ValueInfoProto::descriptor();
-    const google::protobuf::Descriptor* attr_desc = onnx::AttributeProto::descriptor();
-    const google::protobuf::Descriptor* shape_desc = onnx::TensorShapeProto::descriptor();
-    const google::protobuf::Descriptor* dim_desc = onnx::TensorShapeProto::Dimension::descriptor();
-    const google::protobuf::Descriptor* func_desc = onnx::FunctionProto::descriptor();
-    const google::protobuf::Descriptor* opset_desc = onnx::OperatorSetIdProto::descriptor();
-
-    // Access reflection objects
-    const google::protobuf::Reflection* model_refl = onnx::ModelProto::GetReflection();
-    const google::protobuf::Reflection* type_refl = onnx::TypeProto::GetReflection();
-    const google::protobuf::Reflection* tensor_refl = onnx::TensorProto::GetReflection();
-
-    // Access default instances directly
-    const onnx::ModelProto& model_default = onnx::ModelProto::default_instance();
-    const onnx::GraphProto& graph_default = onnx::GraphProto::default_instance();
-    const onnx::NodeProto& node_default = onnx::NodeProto::default_instance();
-    const onnx::TensorProto& tensor_default = onnx::TensorProto::default_instance();
-    const onnx::TypeProto& type_default = onnx::TypeProto::default_instance();
-    const onnx::ValueInfoProto& value_info_default = onnx::ValueInfoProto::default_instance();
-    const onnx::AttributeProto& attr_default = onnx::AttributeProto::default_instance();
-    const onnx::TensorShapeProto& shape_default = onnx::TensorShapeProto::default_instance();
-    const onnx::FunctionProto& func_default = onnx::FunctionProto::default_instance();
-    const onnx::OperatorSetIdProto& opset_default = onnx::OperatorSetIdProto::default_instance();
-
-    // Suppress unused variable warnings
-    (void)model_desc; (void)graph_desc; (void)node_desc; (void)tensor_desc;
-    (void)type_desc; (void)value_info_desc; (void)attr_desc; (void)shape_desc;
-    (void)dim_desc; (void)func_desc; (void)opset_desc;
-    (void)model_refl; (void)type_refl; (void)tensor_refl;
-    (void)model_default; (void)graph_default; (void)node_default;
-    (void)tensor_default; (void)type_default; (void)value_info_default;
-    (void)attr_default; (void)shape_default; (void)func_default; (void)opset_default;
-}
 
 // Exercise TensorShapeProto dimension access (used heavily in CasADi import)
 void force_shape_operations() {
