@@ -71,13 +71,7 @@ else()
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/external_projects/include")
     target_link_libraries(protobuf::libprotobuf INTERFACE utf8_range::utf8_range)
 
-    # Track static libraries for whole-archive linking
-    set(WHOLE_ARCHIVE_LIBS
-        "${CMAKE_BINARY_DIR}/external_projects/lib/${CMAKE_STATIC_LIBRARY_PREFIX}utf8_range${CMAKE_STATIC_LIBRARY_SUFFIX}"
-        CACHE INTERNAL "Libraries to link with whole-archive"
-    )
-
-    # Setup abseil library dependencies (also populates WHOLE_ARCHIVE_LIBS)
+    # Setup abseil library dependencies
     include(${CMAKE_SOURCE_DIR}/cmake/abseil_dependencies.cmake)
     setup_abseil_dependencies(protobuf::libprotobuf)
 
@@ -85,12 +79,6 @@ else()
     set_target_properties(protobuf::libprotobuf PROPERTIES
         IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/external_projects/lib/${CMAKE_STATIC_LIBRARY_PREFIX}protobuf${CMAKE_STATIC_LIBRARY_SUFFIX}"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/external_projects/include")
-
-    # Add protobuf to whole-archive list
-    list(APPEND WHOLE_ARCHIVE_LIBS
-        "${CMAKE_BINARY_DIR}/external_projects/lib/${CMAKE_STATIC_LIBRARY_PREFIX}protobuf${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    )
-    set(WHOLE_ARCHIVE_LIBS "${WHOLE_ARCHIVE_LIBS}" CACHE INTERNAL "")
 endif()
 
 # ONNX - built from source in Case 2 and Case 3
@@ -131,35 +119,12 @@ if(NOT USE_SYSTEM_ONNX)
     set_target_properties(ONNX::onnx_proto PROPERTIES
         IMPORTED_LOCATION "${ONNX_PROTO_LIB_PATH}"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/external_projects/include")
-
-    # Add ONNX to whole-archive list (initialize if Case 2 - system protobuf)
-    if(USE_SYSTEM_PROTOBUF)
-        set(WHOLE_ARCHIVE_LIBS "" CACHE INTERNAL "Libraries to link with whole-archive")
-    endif()
-    list(APPEND WHOLE_ARCHIVE_LIBS "${ONNX_LIB_PATH}" "${ONNX_PROTO_LIB_PATH}")
-    set(WHOLE_ARCHIVE_LIBS "${WHOLE_ARCHIVE_LIBS}" CACHE INTERNAL "")
 endif()
 
-# Whole-archive linker flags (cross-platform)
-# These ensure all symbols from static libraries are included in the shared library
-if(APPLE)
-    set(WHOLE_ARCHIVE_FLAG "-Wl,-force_load,")
-    set(WHOLE_ARCHIVE_END_FLAG "")
-    set(WHOLE_ARCHIVE_PER_LIB TRUE)
-elseif(MSVC)
-    set(WHOLE_ARCHIVE_FLAG "/WHOLEARCHIVE:")
-    set(WHOLE_ARCHIVE_END_FLAG "")
-    set(WHOLE_ARCHIVE_PER_LIB TRUE)
-else()
-    # Linux/Unix with GCC or Clang
-    set(WHOLE_ARCHIVE_FLAG "-Wl,--whole-archive")
-    set(WHOLE_ARCHIVE_END_FLAG "-Wl,--no-whole-archive")
-    set(WHOLE_ARCHIVE_PER_LIB FALSE)
-endif()
-
-# Shared library that bundles all dependencies
+# Shared library that bundles ONNX dependencies
+# The onnx_wrapper.cpp file instantiates ONNX types to pull in the needed symbols
 add_library(onnx-wrapper SHARED
-    src/empty.cpp
+    src/onnx_wrapper.cpp
 )
 
 # Make sure library depends on external projects (only when building from source)
@@ -173,41 +138,13 @@ if(NOT USE_SYSTEM_ONNX)
     endif()
 endif()
 
-# Link all static libraries with whole-archive to include all symbols
-if(USE_SYSTEM_ONNX)
-    # Case 1: All system libraries - link normally via targets
-    target_link_libraries(onnx-wrapper
-        PRIVATE
-            ONNX::onnx
-            ONNX::onnx_proto
-            protobuf::libprotobuf
-    )
-else()
-    # Case 2 or 3: Some or all libraries built from source - use whole-archive
-    list(LENGTH WHOLE_ARCHIVE_LIBS WHOLE_ARCHIVE_LIBS_COUNT)
-    message(STATUS "Linking ${WHOLE_ARCHIVE_LIBS_COUNT} libraries with whole-archive")
-
-    if(WHOLE_ARCHIVE_PER_LIB)
-        # macOS/MSVC: flag must be applied per library
-        foreach(lib IN LISTS WHOLE_ARCHIVE_LIBS)
-            target_link_libraries(onnx-wrapper PRIVATE "${WHOLE_ARCHIVE_FLAG}${lib}")
-        endforeach()
-    else()
-        # Linux: wrap all libraries between --whole-archive and --no-whole-archive
-        # Build the complete link line in one call to ensure correct ordering
-        set(WHOLE_ARCHIVE_LINK_LIBS "${WHOLE_ARCHIVE_FLAG}")
-        foreach(lib IN LISTS WHOLE_ARCHIVE_LIBS)
-            list(APPEND WHOLE_ARCHIVE_LINK_LIBS "${lib}")
-        endforeach()
-        list(APPEND WHOLE_ARCHIVE_LINK_LIBS "${WHOLE_ARCHIVE_END_FLAG}")
-        target_link_libraries(onnx-wrapper PRIVATE ${WHOLE_ARCHIVE_LINK_LIBS})
-    endif()
-
-    # Case 2: Also link system protobuf normally
-    if(USE_SYSTEM_PROTOBUF)
-        target_link_libraries(onnx-wrapper PRIVATE protobuf::libprotobuf)
-    endif()
-endif()
+# Link ONNX libraries - the symbol usage in onnx_wrapper.cpp pulls in what's needed
+target_link_libraries(onnx-wrapper
+    PRIVATE
+        ONNX::onnx
+        ONNX::onnx_proto
+        protobuf::libprotobuf
+)
 
 if(NOT USE_SYSTEM_ONNX)
     target_include_directories(onnx-wrapper

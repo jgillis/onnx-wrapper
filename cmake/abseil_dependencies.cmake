@@ -133,18 +133,13 @@ function(setup_abseil_dependencies PARENT_TARGET)
       set(deps_str "${CMAKE_MATCH_2}")
 
       # Create the imported library target
-      set(lib_path "${CMAKE_BINARY_DIR}/external_projects/lib/${CMAKE_STATIC_LIBRARY_PREFIX}absl_${lib_name}${CMAKE_STATIC_LIBRARY_SUFFIX}")
       add_library(absl-external::${lib_name} STATIC IMPORTED)
       set_target_properties(absl-external::${lib_name} PROPERTIES
-        IMPORTED_LOCATION "${lib_path}"
+        IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/external_projects/lib/${CMAKE_STATIC_LIBRARY_PREFIX}absl_${lib_name}${CMAKE_STATIC_LIBRARY_SUFFIX}"
         INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/external_projects/include")
 
       # Link to parent target (flat list for backward compatibility)
       target_link_libraries(${PARENT_TARGET} INTERFACE absl-external::${lib_name})
-
-      # Track for whole-archive linking
-      list(APPEND WHOLE_ARCHIVE_LIBS "${lib_path}")
-      set(WHOLE_ARCHIVE_LIBS "${WHOLE_ARCHIVE_LIBS}" CACHE INTERNAL "")
 
       # Add dependencies between abseil libraries
       # This recreates the INTERFACE_LINK_LIBRARIES graph from abseil's CMake config,
