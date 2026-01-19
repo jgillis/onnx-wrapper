@@ -7,6 +7,9 @@
 #include <onnx/checker.h>
 #include <onnx/shape_inference/implementation.h>
 
+#include <cstdint>
+#include <cmath>
+
 // Force instantiation of commonly used ONNX types and functions
 // by creating a dummy function that uses them
 extern "C" {
@@ -246,3 +249,334 @@ int onnx_wrapper_check_model(void* model_ptr) {
 }
 
 } // extern "C"
+
+// Additional symbol instantiation to match CasADi usage patterns
+// These functions exercise protobuf reflection and default instances
+namespace {
+
+// Force default instance symbols by accessing GetDescriptor/GetReflection
+void force_protobuf_reflection() {
+    // Access default instances through protobuf reflection API
+    // This pulls in symbols like _TypeProto_default_instance_
+
+    const google::protobuf::Descriptor* model_desc = onnx::ModelProto::descriptor();
+    const google::protobuf::Descriptor* graph_desc = onnx::GraphProto::descriptor();
+    const google::protobuf::Descriptor* node_desc = onnx::NodeProto::descriptor();
+    const google::protobuf::Descriptor* tensor_desc = onnx::TensorProto::descriptor();
+    const google::protobuf::Descriptor* type_desc = onnx::TypeProto::descriptor();
+    const google::protobuf::Descriptor* value_info_desc = onnx::ValueInfoProto::descriptor();
+    const google::protobuf::Descriptor* attr_desc = onnx::AttributeProto::descriptor();
+    const google::protobuf::Descriptor* shape_desc = onnx::TensorShapeProto::descriptor();
+    const google::protobuf::Descriptor* dim_desc = onnx::TensorShapeProto::Dimension::descriptor();
+    const google::protobuf::Descriptor* func_desc = onnx::FunctionProto::descriptor();
+    const google::protobuf::Descriptor* opset_desc = onnx::OperatorSetIdProto::descriptor();
+
+    // Access reflection objects
+    const google::protobuf::Reflection* model_refl = onnx::ModelProto::GetReflection();
+    const google::protobuf::Reflection* type_refl = onnx::TypeProto::GetReflection();
+    const google::protobuf::Reflection* tensor_refl = onnx::TensorProto::GetReflection();
+
+    // Access default instances directly
+    const onnx::ModelProto& model_default = onnx::ModelProto::default_instance();
+    const onnx::GraphProto& graph_default = onnx::GraphProto::default_instance();
+    const onnx::NodeProto& node_default = onnx::NodeProto::default_instance();
+    const onnx::TensorProto& tensor_default = onnx::TensorProto::default_instance();
+    const onnx::TypeProto& type_default = onnx::TypeProto::default_instance();
+    const onnx::ValueInfoProto& value_info_default = onnx::ValueInfoProto::default_instance();
+    const onnx::AttributeProto& attr_default = onnx::AttributeProto::default_instance();
+    const onnx::TensorShapeProto& shape_default = onnx::TensorShapeProto::default_instance();
+    const onnx::FunctionProto& func_default = onnx::FunctionProto::default_instance();
+    const onnx::OperatorSetIdProto& opset_default = onnx::OperatorSetIdProto::default_instance();
+
+    // Suppress unused variable warnings
+    (void)model_desc; (void)graph_desc; (void)node_desc; (void)tensor_desc;
+    (void)type_desc; (void)value_info_desc; (void)attr_desc; (void)shape_desc;
+    (void)dim_desc; (void)func_desc; (void)opset_desc;
+    (void)model_refl; (void)type_refl; (void)tensor_refl;
+    (void)model_default; (void)graph_default; (void)node_default;
+    (void)tensor_default; (void)type_default; (void)value_info_default;
+    (void)attr_default; (void)shape_default; (void)func_default; (void)opset_default;
+}
+
+// Exercise TensorShapeProto dimension access (used heavily in CasADi import)
+void force_shape_operations() {
+    onnx::TensorShapeProto shape;
+
+    // Add dimensions
+    auto* dim1 = shape.add_dim();
+    dim1->set_dim_value(10);
+
+    auto* dim2 = shape.add_dim();
+    dim2->set_dim_param("batch_size");
+
+    // Access dimensions
+    int num_dims = shape.dim_size();
+    for (int i = 0; i < num_dims; ++i) {
+        const auto& dim = shape.dim(i);
+
+        if (dim.has_dim_value()) {
+            int64_t val = dim.dim_value();
+            (void)val;
+        }
+
+        if (dim.has_dim_param()) {
+            const std::string& param = dim.dim_param();
+            (void)param;
+        }
+    }
+
+    // Mutable access
+    auto* mutable_dim = shape.mutable_dim(0);
+    mutable_dim->clear_dim_value();
+    mutable_dim->set_dim_param("N");
+}
+
+// Exercise TypeProto (the specific symbol mentioned: _TypeProto_default_instance_)
+void force_type_proto_operations() {
+    onnx::TypeProto type;
+
+    // Tensor type
+    auto* tensor_type = type.mutable_tensor_type();
+    tensor_type->set_elem_type(onnx::TensorProto::DOUBLE);
+
+    auto* shape = tensor_type->mutable_shape();
+    shape->add_dim()->set_dim_value(3);
+    shape->add_dim()->set_dim_value(4);
+
+    // Access
+    if (type.has_tensor_type()) {
+        const auto& tt = type.tensor_type();
+        int elem_type = tt.elem_type();
+        (void)elem_type;
+
+        if (tt.has_shape()) {
+            const auto& s = tt.shape();
+            (void)s.dim_size();
+        }
+    }
+
+    // TypeProto::Tensor nested type
+    onnx::TypeProto::Tensor standalone_tensor_type;
+    standalone_tensor_type.set_elem_type(onnx::TensorProto::FLOAT);
+
+    // Clear and copy
+    onnx::TypeProto type_copy;
+    type_copy.CopyFrom(type);
+    type.Clear();
+}
+
+// Exercise TensorProto data access (all data types used by CasADi)
+void force_tensor_data_operations() {
+    // DOUBLE tensor
+    onnx::TensorProto double_tensor;
+    double_tensor.set_name("double_data");
+    double_tensor.set_data_type(onnx::TensorProto::DOUBLE);
+    double_tensor.add_dims(2);
+    double_tensor.add_dims(3);
+    double_tensor.add_double_data(1.0);
+    double_tensor.add_double_data(2.0);
+
+    // Access double data
+    int double_size = double_tensor.double_data_size();
+    for (int i = 0; i < double_size; ++i) {
+        double val = double_tensor.double_data(i);
+        (void)val;
+    }
+
+    // FLOAT tensor
+    onnx::TensorProto float_tensor;
+    float_tensor.set_data_type(onnx::TensorProto::FLOAT);
+    float_tensor.add_float_data(3.14f);
+    int float_size = float_tensor.float_data_size();
+    for (int i = 0; i < float_size; ++i) {
+        float val = float_tensor.float_data(i);
+        (void)val;
+    }
+
+    // INT32 tensor
+    onnx::TensorProto int32_tensor;
+    int32_tensor.set_data_type(onnx::TensorProto::INT32);
+    int32_tensor.add_int32_data(42);
+    int int32_size = int32_tensor.int32_data_size();
+    for (int i = 0; i < int32_size; ++i) {
+        int32_t val = int32_tensor.int32_data(i);
+        (void)val;
+    }
+
+    // INT64 tensor
+    onnx::TensorProto int64_tensor;
+    int64_tensor.set_data_type(onnx::TensorProto::INT64);
+    int64_tensor.add_int64_data(123456789LL);
+    int int64_size = int64_tensor.int64_data_size();
+    for (int i = 0; i < int64_size; ++i) {
+        int64_t val = int64_tensor.int64_data(i);
+        (void)val;
+    }
+
+    // BOOL tensor (stored in int32_data)
+    onnx::TensorProto bool_tensor;
+    bool_tensor.set_data_type(onnx::TensorProto::BOOL);
+    bool_tensor.add_int32_data(1);
+
+    // Raw data access
+    onnx::TensorProto raw_tensor;
+    raw_tensor.set_data_type(onnx::TensorProto::DOUBLE);
+    double raw_values[] = {1.0, 2.0, 3.0};
+    raw_tensor.set_raw_data(raw_values, sizeof(raw_values));
+
+    if (raw_tensor.has_raw_data()) {
+        const std::string& raw = raw_tensor.raw_data();
+        size_t raw_size = raw.size();
+        (void)raw_size;
+    }
+
+    // Dims access
+    int dims_size = double_tensor.dims_size();
+    for (int i = 0; i < dims_size; ++i) {
+        int64_t dim = double_tensor.dims(i);
+        (void)dim;
+    }
+}
+
+// Exercise ValueInfoProto (used for graph inputs/outputs)
+void force_value_info_operations() {
+    onnx::ValueInfoProto value_info;
+    value_info.set_name("tensor_value");
+    value_info.set_doc_string("A tensor value");
+
+    // Access type
+    auto* type = value_info.mutable_type();
+    auto* tensor_type = type->mutable_tensor_type();
+    tensor_type->set_elem_type(onnx::TensorProto::DOUBLE);
+
+    auto* shape = tensor_type->mutable_shape();
+    shape->add_dim()->set_dim_value(10);
+
+    // Read back
+    const std::string& name = value_info.name();
+    (void)name;
+
+    if (value_info.has_type()) {
+        const auto& t = value_info.type();
+        if (t.has_tensor_type()) {
+            const auto& tt = t.tensor_type();
+            (void)tt.elem_type();
+        }
+    }
+}
+
+// Exercise OperatorSetIdProto (opset imports)
+void force_opset_operations() {
+    onnx::OperatorSetIdProto opset;
+    opset.set_domain("");
+    opset.set_version(13);
+
+    const std::string& domain = opset.domain();
+    int64_t version = opset.version();
+    (void)domain; (void)version;
+}
+
+// Exercise FunctionProto (local functions in ONNX)
+void force_function_proto_operations() {
+    onnx::FunctionProto func;
+    func.set_name("my_function");
+    func.set_domain("custom_domain");
+
+    // Add inputs/outputs
+    func.add_input("x");
+    func.add_input("y");
+    func.add_output("z");
+
+    // Add opset import
+    auto* opset = func.add_opset_import();
+    opset->set_version(13);
+
+    // Add a node
+    auto* node = func.add_node();
+    node->set_op_type("Add");
+    node->add_input("x");
+    node->add_input("y");
+    node->add_output("z");
+
+    // Access
+    int input_size = func.input_size();
+    int output_size = func.output_size();
+    int node_size = func.node_size();
+
+    for (int i = 0; i < input_size; ++i) {
+        const std::string& inp = func.input(i);
+        (void)inp;
+    }
+
+    for (int i = 0; i < output_size; ++i) {
+        const std::string& out = func.output(i);
+        (void)out;
+    }
+
+    for (int i = 0; i < node_size; ++i) {
+        const auto& n = func.node(i);
+        (void)n.op_type();
+    }
+
+    (void)input_size; (void)output_size; (void)node_size;
+}
+
+// Exercise file I/O operations (ParseFromIstream, SerializeToOstream)
+void force_io_operations() {
+    onnx::ModelProto model;
+    model.set_ir_version(8);
+    model.set_producer_name("test");
+
+    // Serialize to string
+    std::string serialized;
+    model.SerializeToString(&serialized);
+
+    // Parse from string
+    onnx::ModelProto parsed;
+    parsed.ParseFromString(serialized);
+
+    // Byte size
+    size_t byte_size = model.ByteSizeLong();
+    (void)byte_size;
+
+    // Is initialized
+    bool initialized = model.IsInitialized();
+    (void)initialized;
+
+    // DebugString (useful for debugging)
+    std::string debug = model.DebugString();
+    (void)debug;
+}
+
+// Exercise StringStringEntryProto (metadata)
+void force_metadata_operations() {
+    onnx::StringStringEntryProto entry;
+    entry.set_key("key");
+    entry.set_value("value");
+
+    const std::string& key = entry.key();
+    const std::string& value = entry.value();
+    (void)key; (void)value;
+
+    // In model metadata
+    onnx::ModelProto model;
+    auto* meta = model.add_metadata_props();
+    meta->set_key("author");
+    meta->set_value("CasADi");
+
+    int meta_size = model.metadata_props_size();
+    for (int i = 0; i < meta_size; ++i) {
+        const auto& m = model.metadata_props(i);
+        (void)m.key();
+    }
+}
+
+// Force instantiation at static initialization time
+struct StaticInitializer {
+    StaticInitializer() {
+        // These are called at load time to ensure symbols are linked
+        // They won't actually run unless the library is loaded
+    }
+} static_init;
+
+} // anonymous namespace
