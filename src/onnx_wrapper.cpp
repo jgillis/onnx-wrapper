@@ -7,6 +7,8 @@
 #include <onnx/checker.h>
 #include <onnx/shape_inference/implementation.h>
 
+#include <google/protobuf/arena.h>
+
 #include <cstdint>
 #include <cmath>
 
@@ -249,6 +251,16 @@ int onnx_wrapper_check_model(void* model_ptr) {
 }
 
 } // extern "C"
+
+// Force linkage of protobuf internal symbols that are referenced at runtime
+// This uses a volatile pointer to prevent the linker from optimizing it away
+namespace google { namespace protobuf { namespace internal {
+    class ThreadSafeArena;
+    extern thread_local ThreadSafeArena* thread_cache_;
+}}}
+
+static volatile void* force_thread_cache = reinterpret_cast<void*>(
+    &google::protobuf::internal::thread_cache_);
 
 // Additional symbol instantiation to match CasADi usage patterns
 namespace {
